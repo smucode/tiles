@@ -38,17 +38,36 @@ type alias Model =
     { tile : Surface
     , area : Surface
     , grid : List Bool
+    , rows : Int
+    , cols : Int
+    , numTiles : Int
     }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { area = { width = 1000, height = 200 }
-      , tile = { width = 30, height = 30 }
-      , grid = []
-      }
-    , Cmd.none
-    )
+    let
+        areaWidth =
+            1000
+
+        areaHeight =
+            200
+
+        tileWidth =
+            30
+
+        tileHeight =
+            30
+    in
+        ( { area = { width = areaWidth, height = areaHeight }
+          , tile = { width = tileWidth, height = tileHeight }
+          , grid = []
+          , rows = areaHeight // tileHeight
+          , cols = areaWidth // tileWidth
+          , numTiles = (areaHeight // tileHeight) * (areaWidth // tileWidth)
+          }
+        , Cmd.none
+        )
 
 
 
@@ -64,24 +83,17 @@ type Msg
 
 randomizeUneven : Model -> Cmd Msg
 randomizeUneven model =
-    let
-        rows =
-            model.area.height // model.tile.height
-
-        cols =
-            model.area.width // model.tile.width
-    in
-        Random.generate Update (Random.list (rows * cols) Random.bool)
+    Random.generate Update (Random.list (model.numTiles + 1) Random.bool)
 
 
 randomizeEven : Model -> Cmd Msg
 randomizeEven model =
     let
         length =
-            (toFloat model.area.height / toFloat model.tile.height) * (toFloat model.area.width / toFloat model.tile.width)
+            (((model.area.height // model.tile.height) + 1) * ((model.area.width // model.tile.width)) + 1) // 2
 
         grid =
-            (List.repeat (ceiling length // 2) True) ++ (List.repeat (ceiling length // 2) False)
+            (List.repeat length True) ++ (List.repeat length False)
     in
         -- Random.generate Update (Random.list length Random.bool)
         Random.generate Update (Random.List.shuffle grid)
@@ -117,8 +129,8 @@ update msg model =
 -- CSS can be applied via class names or inline style attrib
 
 
-renderRow : List Bool -> Int -> Int -> List (Html msg)
-renderRow list cols row =
+renderRow : Model -> Int -> List (Html msg)
+renderRow model row =
     let
         styles =
             [ ( "display", "inline-block" ), ( "height", "25px" ), ( "width", "25px" ) ]
@@ -127,42 +139,35 @@ renderRow list cols row =
             (\col ->
                 let
                     idx =
-                        (col + 1) + (row * (cols + 1))
+                        col + (row - 1) * model.cols
 
                     bgColor =
-                        case Array.get idx (Array.fromList list) of
+                        case Array.get idx (Array.fromList model.grid) of
                             Just True ->
-                                "#ccc"
+                                "#bbb"
 
                             Just False ->
                                 "#ddd"
 
                             _ ->
-                                "red"
+                                "black"
                 in
                     div
                         [ style (styles ++ [ ( "background", bgColor ) ]) ]
                         [ text ("") ]
             )
-            (List.range 0 cols)
+            (List.range 1 model.cols)
 
 
 tiles : Model -> List (Html msg)
 tiles model =
-    let
-        rows =
-            model.area.height // model.tile.height
-
-        cols =
-            model.area.width // model.tile.width
-    in
-        List.map
-            (\n ->
-                div
-                    [ style [ ( "height", "25px" ) ] ]
-                    (renderRow model.grid cols n)
-            )
-            (List.range 0 rows)
+    List.map
+        (\n ->
+            div
+                [ style [ ( "height", "25px" ) ] ]
+                (renderRow model n)
+        )
+        (List.range 1 model.rows)
 
 
 view : Model -> Html Msg
@@ -182,8 +187,8 @@ view model =
                 ]
                 (tiles model)
             , div []
-                [ button [ class "btn btn-primary", onClick RandomizeUneven ] [ text "Random Uneven Count" ]
-                , button [ class "btn btn-primary", onClick RandomizeEven ] [ text "Random Even Count" ]
+                [ button [ class "btn btn-primary", onClick RandomizeUneven ] [ text "Random" ]
+                , button [ class "btn btn-primary", onClick RandomizeEven ] [ text "Random (Equal)" ]
                 ]
             ]
         ]
