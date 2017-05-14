@@ -5,6 +5,7 @@ import Html exposing (..)
 import Random exposing (map, bool)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
+import Random.List exposing (shuffle)
 
 
 -- APP
@@ -57,11 +58,12 @@ init =
 type Msg
     = NoOp
     | Update (List Bool)
-    | Randomize
+    | RandomizeEven
+    | RandomizeUneven
 
 
-generateMatrix : Model -> Cmd Msg
-generateMatrix model =
+randomizeUneven : Model -> Cmd Msg
+randomizeUneven model =
     let
         rows =
             model.area.height // model.tile.height
@@ -70,6 +72,19 @@ generateMatrix model =
             model.area.width // model.tile.width
     in
         Random.generate Update (Random.list (rows * cols) Random.bool)
+
+
+randomizeEven : Model -> Cmd Msg
+randomizeEven model =
+    let
+        length =
+            (toFloat model.area.height / toFloat model.tile.height) * (toFloat model.area.width / toFloat model.tile.width)
+
+        grid =
+            (List.repeat (ceiling length // 2) True) ++ (List.repeat (ceiling length // 2) False)
+    in
+        -- Random.generate Update (Random.list length Random.bool)
+        Random.generate Update (Random.List.shuffle grid)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -85,9 +100,14 @@ update msg model =
             , Cmd.none
             )
 
-        Randomize ->
+        RandomizeUneven ->
             ( model
-            , generateMatrix model
+            , randomizeUneven model
+            )
+
+        RandomizeEven ->
+            ( model
+            , randomizeEven model
             )
 
 
@@ -106,16 +126,18 @@ renderRow list cols row =
         List.map
             (\col ->
                 let
+                    idx =
+                        (col + 1) + (row * (cols + 1))
+
                     bgColor =
-                        if Maybe.withDefault True (Array.get ((row + 1) * (col + 1)) (Array.fromList list)) then
+                        if Maybe.withDefault True (Array.get idx (Array.fromList list)) then
                             "#ccc"
                         else
                             "#ddd"
                 in
                     div
-                        [ style (styles ++ [ ( "background", bgColor ) ])
-                        ]
-                        [ text "" ]
+                        [ style (styles ++ [ ( "background", bgColor ) ]) ]
+                        [ text ("") ]
             )
             (List.range 0 cols)
 
@@ -129,7 +151,13 @@ tiles model =
         cols =
             model.area.width // model.tile.width
     in
-        List.map (\n -> div [ style [ ( "height", "25px" ) ] ] (renderRow model.grid cols n)) (List.range 0 rows)
+        List.map
+            (\n ->
+                div
+                    [ style [ ( "height", "25px" ) ] ]
+                    (renderRow model.grid cols n)
+            )
+            (List.range 0 rows)
 
 
 view : Model -> Html Msg
@@ -148,9 +176,9 @@ view model =
                     ]
                 ]
                 (tiles model)
-            , button
-                [ class "btn btn-primary btn-lg", onClick Randomize ]
-                [ text "RANDOMIZE"
+            , div []
+                [ button [ class "btn btn-primary", onClick RandomizeUneven ] [ text "Random Uneven Count" ]
+                , button [ class "btn btn-primary", onClick RandomizeEven ] [ text "Random Even Count" ]
                 ]
             ]
         ]
