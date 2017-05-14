@@ -130,10 +130,15 @@ renderRow list cols row =
                         (col + 1) + (row * (cols + 1))
 
                     bgColor =
-                        if Maybe.withDefault True (Array.get idx (Array.fromList list)) then
-                            "#ccc"
-                        else
-                            "#ddd"
+                        case Array.get idx (Array.fromList list) of
+                            Just True ->
+                                "#ccc"
+
+                            Just False ->
+                                "#ddd"
+
+                            _ ->
+                                "red"
                 in
                     div
                         [ style (styles ++ [ ( "background", bgColor ) ]) ]
