@@ -1,14 +1,10 @@
 module Main exposing (..)
 
+import Array exposing (..)
 import Html exposing (..)
 import Random exposing (map, bool)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
-
-
--- component import example
-
-import Components.Hello exposing (hello)
 
 
 -- APP
@@ -32,18 +28,23 @@ type alias Surface =
     { width : Int, height : Int }
 
 
+type Grid
+    = List Bool
+    | Nothing
+
+
 type alias Model =
-    { number : Int
-    , tile : Surface
+    { tile : Surface
     , area : Surface
+    , grid : List Bool
     }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { number = 10
-      , area = { width = 1000, height = 200 }
+    ( { area = { width = 1000, height = 200 }
       , tile = { width = 30, height = 30 }
+      , grid = []
       }
     , Cmd.none
     )
@@ -55,8 +56,20 @@ init =
 
 type Msg
     = NoOp
-    | Update Int
+    | Update (List Bool)
     | Randomize
+
+
+generateMatrix : Model -> Cmd Msg
+generateMatrix model =
+    let
+        rows =
+            model.area.height // model.tile.height
+
+        cols =
+            model.area.width // model.tile.width
+    in
+        Random.generate Update (Random.list (rows * cols) Random.bool)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -67,14 +80,14 @@ update msg model =
             , Cmd.none
             )
 
-        Update n ->
-            ( { model | number = n }
+        Update g ->
+            ( { model | grid = g }
             , Cmd.none
             )
 
         Randomize ->
             ( model
-            , Random.generate Update (Random.int 1 6)
+            , generateMatrix model
             )
 
 
@@ -84,25 +97,27 @@ update msg model =
 -- CSS can be applied via class names or inline style attrib
 
 
-renderRow : Int -> Int -> List (Html msg)
-renderRow cols n =
+renderRow : List Bool -> Int -> Int -> List (Html msg)
+renderRow list cols row =
     let
-        bgColor =
-            Random.map
-                (\b ->
-                    if b then
-                        "#eee"
-                    else
-                        "#ddd"
-                )
-                bool
-
-        -- if MAth.random() > .5 then '#eee' else '#ddd'
-        -- ( "background", (Random.generate (\s -> s) bgColor) )
         styles =
             [ ( "display", "inline-block" ), ( "height", "25px" ), ( "width", "25px" ) ]
     in
-        List.map (\n -> div [ style styles ] []) (List.range 0 cols)
+        List.map
+            (\col ->
+                let
+                    bgColor =
+                        if Maybe.withDefault True (Array.get ((row + 1) * (col + 1)) (Array.fromList list)) then
+                            "#ccc"
+                        else
+                            "#ddd"
+                in
+                    div
+                        [ style (styles ++ [ ( "background", bgColor ) ])
+                        ]
+                        [ text "" ]
+            )
+            (List.range 0 cols)
 
 
 tiles : Model -> List (Html msg)
@@ -114,40 +129,28 @@ tiles model =
         cols =
             model.area.width // model.tile.width
     in
-        List.map (\n -> div [] (renderRow cols n)) (List.range 0 rows)
+        List.map (\n -> div [ style [ ( "height", "25px" ) ] ] (renderRow model.grid cols n)) (List.range 0 rows)
 
 
 view : Model -> Html Msg
 view model =
     div
-        [ class "container"
-        , style
-            [ ( "margin-top", "30px" )
-            , ( "text-align", "center" )
+        [ style
+            [ ( "margin", "30px" )
             ]
         ]
-        [ -- inline CSS (literal)
-          div [ class "row" ]
-            [ div [ class "col-xs-12" ]
-                [ div
-                    [ style
-                        [ ( "height", toString model.area.height ++ "px" )
-                        , ( "width", toString model.area.width ++ "px" )
-                        , ( "background", "#eee" )
-                        ]
+        [ div
+            []
+            [ div
+                [ style
+                    [ ( "height", toString model.area.height ++ "px" )
+                    , ( "width", toString model.area.width ++ "px" )
                     ]
-                    (tiles model)
-                , div [ class "jumbotron" ]
-                    [ hello model.number
-                      -- ext 'hello' component (takes 'model' as arg)
-                    , p [] [ text ("Elm Webpack Starter") ]
-                    , button [ class "btn btn-primary btn-lg", onClick Randomize ]
-                        [ -- click handler
-                          span [ class "glyphicon glyphicon-star" ] []
-                          -- glyphicon
-                        , span [] [ text "FTW!" ]
-                        ]
-                    ]
+                ]
+                (tiles model)
+            , button
+                [ class "btn btn-primary btn-lg", onClick Randomize ]
+                [ text "RANDOMIZE"
                 ]
             ]
         ]
