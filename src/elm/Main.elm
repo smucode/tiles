@@ -90,12 +90,11 @@ randomizeEven : Model -> Cmd Msg
 randomizeEven model =
     let
         length =
-            (((model.area.height // model.tile.height) + 1) * ((model.area.width // model.tile.width)) + 1) // 2
+            (model.rows + 1) * (model.cols + 1) // 2
 
         grid =
             (List.repeat length True) ++ (List.repeat length False)
     in
-        -- Random.generate Update (Random.list length Random.bool)
         Random.generate Update (Random.List.shuffle grid)
 
 
