@@ -45,28 +45,87 @@ type alias Model =
     }
 
 
+numRows : Model -> Int
+numRows model =
+    model.area.height // model.tile.height
+
+
+numCols : Model -> Int
+numCols model =
+    model.area.width // model.tile.width
+
+
+numTiles : Model -> Int
+numTiles model =
+    numRows model * numCols model
+
+
+recalcFields : Model -> Model
+recalcFields model =
+    { model
+        | rows = numRows model
+        , cols = numCols model
+        , numTiles = numTiles model
+    }
+
+
+updateAreaHeight : String -> Model -> Model
+updateAreaHeight height model =
+    recalcFields
+        { model
+            | area =
+                { height = Result.withDefault model.area.height (String.toInt height)
+                , width = model.area.width
+                }
+        }
+
+
+updateAreaWidth : String -> Model -> Model
+updateAreaWidth width model =
+    recalcFields
+        { model
+            | area =
+                { width = Result.withDefault model.area.width (String.toInt width)
+                , height = model.area.height
+                }
+        }
+
+
+updateTileHeight : String -> Model -> Model
+updateTileHeight height model =
+    recalcFields
+        { model
+            | tile =
+                { height = Result.withDefault model.tile.height (String.toInt height)
+                , width = model.tile.width
+                }
+        }
+
+
+updateTileWidth : String -> Model -> Model
+updateTileWidth width model =
+    recalcFields
+        { model
+            | tile =
+                { width = Result.withDefault model.tile.width (String.toInt width)
+                , height = model.tile.height
+                }
+        }
+
+
 init : ( Model, Cmd Msg )
 init =
     let
-        areaWidth =
-            1000
-
-        areaHeight =
-            200
-
-        tileWidth =
-            30
-
-        tileHeight =
-            30
+        model =
+            { area = { width = 1000, height = 200 }
+            , tile = { width = 30, height = 30 }
+            , grid = []
+            , rows = 0
+            , cols = 0
+            , numTiles = 0
+            }
     in
-        ( { area = { width = areaWidth, height = areaHeight }
-          , tile = { width = tileWidth, height = tileHeight }
-          , grid = []
-          , rows = areaHeight // tileHeight
-          , cols = areaWidth // tileWidth
-          , numTiles = (areaHeight // tileHeight) * (areaWidth // tileWidth)
-          }
+        ( recalcFields model
         , Cmd.none
         )
 
@@ -127,42 +186,22 @@ update msg model =
             )
 
         ChangeAreaWidth width ->
-            ( { model
-                | area =
-                    { width = Result.withDefault model.area.width (String.toInt width)
-                    , height = model.area.height
-                    }
-              }
+            ( updateAreaWidth width model
             , Cmd.none
             )
 
         ChangeAreaHeight height ->
-            ( { model
-                | area =
-                    { height = Result.withDefault model.area.height (String.toInt height)
-                    , width = model.area.width
-                    }
-              }
+            ( updateAreaHeight height model
             , Cmd.none
             )
 
         ChangeTileWidth width ->
-            ( { model
-                | tile =
-                    { width = Result.withDefault model.tile.width (String.toInt width)
-                    , height = model.tile.height
-                    }
-              }
+            ( updateTileWidth width model
             , Cmd.none
             )
 
         ChangeTileHeight height ->
-            ( { model
-                | tile =
-                    { height = Result.withDefault model.tile.height (String.toInt height)
-                    , width = model.tile.width
-                    }
-              }
+            ( updateTileHeight height model
             , Cmd.none
             )
 
@@ -177,7 +216,7 @@ renderRow : Model -> Int -> List (Html msg)
 renderRow model row =
     let
         styles =
-            [ ( "display", "inline-block" ), ( "height", "25px" ), ( "width", "25px" ) ]
+            [ ( "display", "inline-block" ), ( "height", (toString model.tile.height) ++ "px" ), ( "width", (toString model.tile.width) ++ "px" ) ]
     in
         List.map
             (\col ->
@@ -208,7 +247,7 @@ tiles model =
     List.map
         (\n ->
             div
-                [ style [ ( "height", "25px" ) ] ]
+                [ style [ ( "height", (toString model.tile.height) ++ "px" ) ] ]
                 (renderRow model n)
         )
         (List.range 1 model.rows)
@@ -231,7 +270,10 @@ view model =
                 ]
                 (tiles model)
             , fieldset []
-                [ input [ value (toString model.area.height), placeholder "Area Height", onInput ChangeAreaHeight ] []
+                [ input [ type_ "number", step "10", value (toString model.area.width), placeholder "Area Width", onInput ChangeAreaWidth ] []
+                , input [ type_ "number", step "10", value (toString model.area.height), placeholder "Area Height", onInput ChangeAreaHeight ] []
+                , input [ type_ "number", step "10", value (toString model.tile.width), placeholder "Tile Width", onInput ChangeTileWidth ] []
+                , input [ type_ "number", step "10", value (toString model.tile.height), placeholder "Tile Hiehgt", onInput ChangeTileHeight ] []
                 ]
             , div []
                 [ button [ class "btn btn-primary", onClick RandomizeUneven ] [ text "Random" ]
