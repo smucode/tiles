@@ -6,6 +6,7 @@ import Random exposing (map, bool)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
 import Random.List exposing (shuffle)
+import Html.Events exposing (onInput)
 
 
 -- APP
@@ -25,7 +26,7 @@ main =
 -- MODEL
 
 
-type alias Surface =
+type alias Dimension =
     { width : Int, height : Int }
 
 
@@ -35,8 +36,8 @@ type Grid
 
 
 type alias Model =
-    { tile : Surface
-    , area : Surface
+    { tile : Dimension
+    , area : Dimension
     , grid : List Bool
     , rows : Int
     , cols : Int
@@ -79,6 +80,10 @@ type Msg
     | Update (List Bool)
     | RandomizeEven
     | RandomizeUneven
+    | ChangeAreaWidth String
+    | ChangeAreaHeight String
+    | ChangeTileWidth String
+    | ChangeTileHeight String
 
 
 randomizeUneven : Model -> Cmd Msg
@@ -119,6 +124,46 @@ update msg model =
         RandomizeEven ->
             ( model
             , randomizeEven model
+            )
+
+        ChangeAreaWidth width ->
+            ( { model
+                | area =
+                    { width = Result.withDefault model.area.width (String.toInt width)
+                    , height = model.area.height
+                    }
+              }
+            , Cmd.none
+            )
+
+        ChangeAreaHeight height ->
+            ( { model
+                | area =
+                    { height = Result.withDefault model.area.height (String.toInt height)
+                    , width = model.area.width
+                    }
+              }
+            , Cmd.none
+            )
+
+        ChangeTileWidth width ->
+            ( { model
+                | tile =
+                    { width = Result.withDefault model.tile.width (String.toInt width)
+                    , height = model.tile.height
+                    }
+              }
+            , Cmd.none
+            )
+
+        ChangeTileHeight height ->
+            ( { model
+                | tile =
+                    { height = Result.withDefault model.tile.height (String.toInt height)
+                    , width = model.tile.width
+                    }
+              }
+            , Cmd.none
             )
 
 
@@ -185,6 +230,9 @@ view model =
                     ]
                 ]
                 (tiles model)
+            , fieldset []
+                [ input [ value (toString model.area.height), placeholder "Area Height", onInput ChangeAreaHeight ] []
+                ]
             , div []
                 [ button [ class "btn btn-primary", onClick RandomizeUneven ] [ text "Random" ]
                 , button [ class "btn btn-primary", onClick RandomizeEven ] [ text "Random (Equal)" ]
