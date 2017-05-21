@@ -113,6 +113,23 @@ updateTileWidth width model =
         }
 
 
+countBool : Bool -> Model -> String
+countBool bool model =
+    (toString
+        (List.foldl
+            (\a b ->
+                (if a == bool then
+                    b + 1
+                 else
+                    b
+                )
+            )
+            0
+            model.grid
+        )
+    )
+
+
 init : ( Model, Cmd Msg )
 init =
     let
@@ -274,6 +291,13 @@ view model =
                 , input [ type_ "number", step "10", value (toString model.area.height), placeholder "Area Height", onInput ChangeAreaHeight ] []
                 , input [ type_ "number", step "10", value (toString model.tile.width), placeholder "Tile Width", onInput ChangeTileWidth ] []
                 , input [ type_ "number", step "10", value (toString model.tile.height), placeholder "Tile Hiehgt", onInput ChangeTileHeight ] []
+                , div [ class "pad-r-ch pad-t" ]
+                    [ span [] [ text ("rows:" ++ (toString model.rows)) ]
+                    , span [] [ text ("cols:" ++ (toString model.cols)) ]
+                    , span [] [ text ("tiles:" ++ (toString model.numTiles)) ]
+                    , span [] [ text ("light:" ++ (countBool True model)) ]
+                    , span [] [ text ("dark:" ++ (countBool False model)) ]
+                    ]
                 ]
             , div []
                 [ button [ class "btn btn-primary", onClick RandomizeUneven ] [ text "Random" ]
